@@ -74,9 +74,14 @@ fi
 
 echo "vk-tunnel успешно запущен (PID: $VK_PID)"
 
-# извлекаем домен из логов
+# извлекаем домен из логов - берем ПОСЛЕДНИЙ домен из лога
 echo "Извлечение домена из вывода vk-tunnel..."
-DOMAIN=$(grep -oE '[a-zA-Z0-9-]+-yp[0-9a-zA-Z]+\.tunnel\.vk-apps\.com' /tmp/vk-tunnel.log | tail -n1)
+DOMAIN=$(grep -oE 'https://[a-zA-Z0-9-]+[-a-zA-Z0-9]*\.tunnel\.vk-apps\.com' /tmp/vk-tunnel.log | tail -n1 | sed 's|https://||')
+
+if [ -z "$DOMAIN" ]; then
+	# альтернативная попытка извлечь домен из wss строки
+	DOMAIN=$(grep -oE 'wss://[a-zA-Z0-9-]+[-a-zA-Z0-9]*\.tunnel\.vk-apps\.com' /tmp/vk-tunnel.log | tail -n1 | sed 's|wss://||')
+fi
 
 if [ -z "$DOMAIN" ]; then
 	echo "Ошибка: Не удалось извлечь домен из вывода vk-tunnel"

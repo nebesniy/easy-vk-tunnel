@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Конфигурация
+# конфигурация (вставьте свои данные из инбаунда)
 UUID="12345678-1234-1234-1234-123456789abc"
 INBOUNDPORT="8080"
 WSPATH="/"
@@ -21,13 +21,6 @@ urlencode() {
 	done
 	echo "$encoded"
 }
-
-# проверка конфигурации
-if [[ -z "$UUID" || -z "$INBOUNDPORT" || -z "$WSPATH" ]]; then
-	echo "Ошибка: Не все конфигурационные переменные заполнены!"
-	echo "Отредактируйте скрипт и заполните UUID, порт инбаунда и директорию веб-сокетов (Path)"
-	exit 1
-fi
 
 echo "=== Ваша конфигурация ==="
 echo "UUID: $UUID"
@@ -58,11 +51,11 @@ if [ ! -z "$VK_PID" ]; then
 	echo "Процесс vk-tunnel остановлен."
 fi
 
-# запускаем vk-tunnel в фоне
+# запускаем vk-tunnel
 echo "Запуск vk-tunnel на порту $INBOUNDPORT..."
 vk-tunnel --port=$INBOUNDPORT > /tmp/vk-tunnel.log 2>&1 &
 
-# время для запуска vk-tunnel
+# время для запуска vk-tunnel, если вк лагает, то увеличьте это значение до 10-15
 sleep 5
 
 # проверяем, что процесс запустился
@@ -74,7 +67,7 @@ fi
 
 echo "vk-tunnel успешно запущен (PID: $VK_PID)"
 
-# извлекаем домен из логов - берем ПОСЛЕДНИЙ домен из лога
+# извлекаем домен из логов - берем последний домен из лога
 echo "Извлечение домена из вывода vk-tunnel..."
 DOMAIN=$(grep -oE 'https://[a-zA-Z0-9-]+[-a-zA-Z0-9]*\.tunnel\.vk-apps\.com' /tmp/vk-tunnel.log | tail -n1 | sed 's|https://||')
 
@@ -90,7 +83,7 @@ if [ -z "$DOMAIN" ]; then
 	exit 1
 fi
 
-echo "Найден домен: $DOMAIN"
+echo "Домен vk-tunnel: $DOMAIN"
 
 # URL encode для WSPATH
 ENCODED_WSPATH=$(urlencode "$WSPATH")
@@ -99,7 +92,7 @@ ENCODED_WSPATH=$(urlencode "$WSPATH")
 VLESS_LINK="vless://${UUID}@${DOMAIN}:443/?type=ws&path=${ENCODED_WSPATH}&security=tls#vk-tunnel"
 
 echo ""
-echo "=== Ссылка успешно сгенерирована ==="
+echo "=== Vless-ссылка ==="
 echo "$VLESS_LINK"
 echo ""
 echo "=== QR код ==="

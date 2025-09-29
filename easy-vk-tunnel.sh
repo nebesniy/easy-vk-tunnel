@@ -162,42 +162,51 @@ upload_to_yandex_cloud() {
 
 # чекер работоспособности туннеля
 check_tunnel() {
-    local domain="$1"
-    local url="https://${domain}${WSPATH}"
-    local response
-    local exit_code
-    local attempt
-    
-    for attempt in {1..3}; do 
-        log "Проверка туннеля $domain (попытка $attempt/3)..."
-        
-        response=$($CURL_CMD -sk --connect-timeout 3 --max-time 4 "$url" 2>/dev/null)
-        exit_code=$?
-        
-        if [[ $exit_code -eq 0 ]]; then
-            if echo "$response" | grep -q "Bad Request"; then
-                log "Туннель корректно отвечает ($domain)"
-                return 0
-            else
-                log "Проблема с туннелем ($domain). Неверный ответ. Ответ: $response"
-                
-                if echo "$response" | grep -q "there is no tunnel connection associated with given host"; then
-                    log "Туннель не ассоциирован с доменом. Немедленная перезагрузка."
-                    return 1
-                fi
-            fi
-        else
-            log "Ошибка проверки туннеля (curl exit code: $exit_code) - попытка $attempt/3"
-        fi
-        
-        # Уменьшаем паузу между попытками
-        if [[ $attempt -lt 3 ]]; then
-            sleep 1
-        fi
-    done
-    
-    log "Все попытки проверки туннеля $domain завершились неудачно"
-    return 1
+	local domain="$1"
+	local url="https://${domain}${WSPATH}"
+	local response
+	local exit_code
+	local attempt
+	
+	for attempt in {1..3}; do 
+		log "Проверка туннеля $domain (попытка $attempt/3)..."
+		
+		response=$($CURL_CMD -sk \
+			--connect-timeout 5 \
+			--max-time 8 \
+			--retry 2 \
+			--retry-delay 1 \
+			--retry-max-time 10 \
+			"$url" 2>/dev/null)
+		exit_code=$?
+		
+		if [[ $exit_code -eq 0 ]]; then
+			if echo "$response" | grep -q "Bad Request"; then
+				log "Туннель корректно отвечает ($domain)"
+				return 0
+			else
+				log "Проблема с туннелем ($domain). Неверный ответ. Ответ: $response"
+				
+				if echo "$response" | grep -q "there is no tunnel connection associated with given host"; then
+					log "Туннель не ассоциирован с доменом."
+					return 1
+				fi
+			fi
+		else
+			log "Ошибка проверки туннеля (curl exit code: $exit_code) - попытка $attempt/3"
+			
+			if [[ $exit_code -eq 28 && $attempt -lt 3 ]]; then
+				sleep 2
+			fi
+		fi
+		
+		if [[ $attempt -lt 3 ]]; then
+			sleep 2
+		fi
+	done
+	
+	log "Все попытки проверки туннеля $domain завершились неудачно"
+	return 1
 }
 
 # запускаем туннель

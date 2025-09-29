@@ -5,7 +5,8 @@
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # конфиг файл
-CONFIG_FILE="$(dirname "$0")/settings.conf"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/settings.conf"
 LOG_FILE="/tmp/easy-vk-tunnel.log"
 
 VK_TUNNEL_CMD="/usr/local/bin/vk-tunnel" 
@@ -67,7 +68,43 @@ install_dependencies() {
 	log "Установка зависимостей..."
 	
 	apt-get update
-	apt-get install -y curl awscli cron
+	apt-get install -y curl cron unzip
+	
+	# Скачивание и установка AWS CLI v2
+	cd /tmp
+	curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+	unzip awscliv2.zip
+	./aws/install
+	
+	# Очистка
+	rm -rf awscliv2.zip aws/
+	
+	# Проверяем установку
+	if command -v aws &> /dev/null; then
+		log "AWS CLI v2 успешно установлен"
+	else
+		log "Ошибка: AWS CLI не установлен"
+		return 1
+	fi
+}
+
+# проверка наличия необходимых команд
+check_commands() {
+	local commands=("curl" "aws" "pgrep" "pkill")
+	local missing=()
+	
+	for cmd in "${commands[@]}"; do
+		if ! command -v "$cmd" &> /dev/null; then
+			missing+=("$cmd")
+		fi
+	done
+	
+	if [[ ${#missing[@]} -gt 0 ]]; then
+		log "Отсутствуют команды: ${missing[*]}"
+		return 1
+	fi
+	
+	return 0
 }
 
 # настройка awscli для s3 яндекса
@@ -285,6 +322,12 @@ install() {
 	# установка зависимостей
 	install_dependencies
 	
+	# проверяем установку
+	if ! check_commands; then
+		log "Ошибка: не все необходимые команды установлены"
+		exit 1
+	fi
+	
 	# настройка awscli
 	configure_aws
 	
@@ -314,9 +357,17 @@ install() {
 	file_url=$(upload_to_yandex_cloud "$domain")
 	
 	# добавляем в cron
-	local script_path
-	script_path=$(realpath "$0")
-	(crontab -l 2>/dev/null | grep -v "$script_path"; echo "* * * * * /bin/bash $script_path --watchdog") | crontab -
+	local script_path="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
+	
+	# Проверяем, существует ли файл скрипта
+	if [[ ! -f "$script_path" ]]; then
+		log "Ошибка: скрипт не найден по пути: $script_path"
+		return 1
+	fi
+	
+	log "Добавление в cron: $script_path"
+	(crontab -l 2>/dev/null | grep -v "$script_path"; echo "* * * * * /bin/bash '$script_path' --watchdog") | crontab -
+	log "Задача добавлена в cron"
 	
 	log "Установка завершена. Watchdog добавлен в cron."
 	log "Логи: $LOG_FILE"
@@ -335,6 +386,11 @@ watchdog() {
 	
 	if ! read_config; then
 		log "Ошибка: не удалось прочитать конфигурацию"
+		exit 1
+	fi
+	
+	if ! check_commands; then
+		log "Ошибка: не все необходимые команды доступны"
 		exit 1
 	fi
 	

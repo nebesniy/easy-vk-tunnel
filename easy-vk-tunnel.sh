@@ -154,7 +154,25 @@ start_vk_tunnel() {
 	sleep 2
 	
 	$VK_TUNNEL_CMD --port="$INBOUNDPORT" > /tmp/vk-tunnel.log 2>&1 &
-	sleep 10 # если сервер медленный или вк лагает, возможно нужно будет поставить сюда 15 или 20
+	
+	# Замена sleep 10 на цикл проверки домена
+	log "Ожидание появления домена в логах..."
+	local domain=""
+	
+	for ((i=1; i<=30; i++)); do
+		sleep 1
+		domain=$(get_current_domain)
+		if [[ -n "$domain" ]]; then
+			log "Домен найден: $domain (попытка $i/30)"
+			break
+		fi
+		log "Домен еще не появился в логах... (попытка $i/30)"
+	done
+	
+	if [[ -z "$domain" ]]; then
+		log "Ошибка: домен не найден в логах после 30 секунд ожидания"
+		return 1
+	fi
 	
 	local vk_pid=$(pgrep -f "vk-tunnel --port=$INBOUNDPORT")
 	if [[ -z "$vk_pid" ]]; then

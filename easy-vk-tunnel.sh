@@ -9,11 +9,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/settings.conf"
 LOG_FILE="/tmp/easy-vk-tunnel.log"
 
-VK_TUNNEL_CMD="/usr/local/bin/vk-tunnel" 
-AWS_CMD="/usr/local/bin/aws"
-CURL_CMD="/usr/bin/curl"
-PGREP_CMD="/usr/bin/pgrep"
-PKILL_CMD="/usr/bin/pkill"
+VK_TUNNEL_CMD=$(command -v vk-tunnel || echo "/usr/local/bin/vk-tunnel")
+AWS_CMD=$(command -v aws || echo "/usr/local/bin/aws")
+CURL_CMD=$(command -v curl || echo "/usr/bin/curl")
+PGREP_CMD=$(command -v pgrep || echo "/usr/bin/pgrep")
+PKILL_CMD=$(command -v pkill || echo "/usr/bin/pkill")
 
 # логи
 log() {

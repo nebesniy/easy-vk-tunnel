@@ -116,7 +116,7 @@ upload_to_yandex_cloud() {
 	if $AWS_CMD --endpoint-url=https://storage.yandexcloud.net s3 cp "/tmp/$SUBSCRIPTION_FILE" "s3://$BUCKET_NAME/" > /dev/null 2>&1; then
 		local file_url="https://storage.yandexcloud.net/$BUCKET_NAME/$SUBSCRIPTION_FILE"
 		log "Файл подписки успешно загружен: $file_url"
-		echo "Добавьте $file_url в свой VLESS-клиент, как подписку. Далее надзорный скрипт watchdog будет сам следить за работоспособностью туннеля, перезагружать его и автоматически менять домен в подписке."
+		echo "Добавьте $file_url в своё VLESS-приложение, как подписку. Далее надзорный скрипт watchdog будет сам следить за работоспособностью туннеля, перезагружать его и автоматически менять домен в подписке."
 	else
 		log "Ошибка загрузки файла в бакет"
 		return 1
@@ -128,21 +128,52 @@ check_tunnel() {
 	local domain="$1"
 	local url="https://${domain}${WSPATH}"
 	local response
+	local exit_code
+	local success_count=0
+	local attempt
 	
-	response=$($CURL_CMD -sk --max-time 10 "$url" 2>/dev/null)
-	local exit_code=$?
+	for attempt in {1..5}; do
+		log "Проверка туннеля $domain (попытка $attempt/5)..."
+		
+		response=$($CURL_CMD -sk --max-time 5 "$url" 2>/dev/null)
+		exit_code=$?
+		
+		if [[ $exit_code -eq 0 ]]; then
+			if echo "$response" | grep -q "Bad Request"; then
+				log "Туннель корректно отвечает ($domain) - попытка $attempt/5"
+				((success_count++))
+				
+				# Если хотя бы одна успешная проверка - сразу возвращаем успех
+				if [[ $success_count -ge 1 ]]; then
+					# log "Туннель стабильно работает ($domain)."
+					return 0
+				fi
+			else
+				log "Проблема с туннелем ($domain). Неверный ответ - попытка $attempt/5. Ответ: $response"
+				
+				# Немедленный возврат ошибки при обнаружении "no tunnel connection"
+				if echo "$response" | grep -q "there is no tunnel connection associated with given host"; then
+					log "Туннель не ассоциирован с доменом. Немедленная перезагрузка."
+					return 1
+				fi
+			fi
+		else
+			log "Ошибка проверки туннеля (curl exit code: $exit_code) - попытка $attempt/5"
+		fi
+		
+		# Если это не последняя попытка - ждем перед следующей
+		if [[ $attempt -lt 5 ]]; then
+			sleep 2
+		fi
+	done
 	
-	if [[ $exit_code -ne 0 ]]; then
-		log "Ошибка проверки туннеля (curl exit code: $exit_code)"
+	# Если дошли до сюда, значит все попытки неудачные или недостаточно успешных
+	if [[ $success_count -eq 0 ]]; then
+		# log "Все 5 попыток проверки туннеля $domain завершились неудачно"
 		return 1
-	fi
-	
-	if echo "$response" | grep -q "Bad Request"; then
-		log "Туннель работает нормально ($domain)"
-		return 0
 	else
-		log "Проблема с туннелем ($domain). Ответ: $response"
-		return 1
+		# log "Туннель $domain работает нестабильно. Успешных проверок: $success_count/5"
+		return 0
 	fi
 }
 
@@ -155,7 +186,7 @@ start_vk_tunnel() {
 	
 	$VK_TUNNEL_CMD --port="$INBOUNDPORT" > /tmp/vk-tunnel.log 2>&1 &
 	
-	# Замена sleep 10 на цикл проверки домена
+	# цикл проверки домена
 	log "Ожидание появления домена в логах..."
 	local domain=""
 	

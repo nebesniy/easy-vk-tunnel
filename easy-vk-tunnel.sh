@@ -10,7 +10,7 @@ CONFIG_FILE="$SCRIPT_DIR/settings.conf"
 LOG_FILE="/tmp/easy-vk-tunnel.log"
 
 VK_TUNNEL_CMD="/usr/local/bin/vk-tunnel" 
-AWS_CMD="/usr/local/bin/aws"
+AWS_CMD="/usr/bin/aws"
 CURL_CMD="/usr/bin/curl"
 PGREP_CMD="/usr/bin/pgrep"
 PKILL_CMD="/usr/bin/pkill"
@@ -218,10 +218,37 @@ check_tunnel() {
 start_vk_tunnel() {
 	log "Запуск vk-tunnel на порту $INBOUNDPORT..."
 	
-	$PKILL_CMD -f "vk-tunnel --port=$INBOUNDPORT"
-	sleep 2
+	# Получаем все PID процессов vk-tunnel с указанным портом
+	local pids=($($PGREP_CMD -f "vk-tunnel --port=$INBOUNDPORT"))
 	
-	$VK_TUNNEL_CMD --port="$INBOUNDPORT" > /tmp/vk-tunnel.log 2>&1 &
+	# Если найдены процессы, убиваем их все
+	if [[ ${#pids[@]} -gt 0 ]]; then
+		log "Найдено процессов vk-tunnel: ${#pids[@]}"
+		log "PID процессов: ${pids[*]}"
+		
+		for pid in "${pids[@]}"; do
+			log "Убиваем процесс vk-tunnel с PID: $pid"
+			kill -9 "$pid" 2>/dev/null
+		done
+		
+		# Дополнительная проверка и принудительное убийство через pkill
+		$PKILL_CMD -f "vk-tunnel --port=$INBOUNDPORT" 2>/dev/null
+		
+		sleep 2
+		
+		# Проверяем, что все процессы убиты
+		local remaining_pids=($($PGREP_CMD -f "vk-tunnel --port=$INBOUNDPORT"))
+		if [[ ${#remaining_pids[@]} -gt 0 ]]; then
+			log "Предупреждение: остались процессы после убийства: ${remaining_pids[*]}"
+		else
+			log "Все процессы vk-tunnel успешно убиты"
+		fi
+	else
+		log "Активных процессов vk-tunnel не найдено"
+	fi
+	
+	# Запускаем новый процесс
+	$VK_TUNNEL_CMD --port=$INBOUNDPORT > /tmp/vk-tunnel.log 2>&1 &
 	
 	# цикл проверки домена
 	log "Ожидание появления домена в логах..."
@@ -242,10 +269,20 @@ start_vk_tunnel() {
 		return 1
 	fi
 	
-	local vk_pid=$(pgrep -f "vk-tunnel --port=$INBOUNDPORT")
-	if [[ -z "$vk_pid" ]]; then
+	local vk_pids=($($PGREP_CMD -f "vk-tunnel --port=$INBOUNDPORT"))
+	if [[ ${#vk_pids[@]} -eq 0 ]]; then
 		log "Ошибка: vk-tunnel не запустился"
 		return 1
+	elif [[ ${#vk_pids[@]} -gt 1 ]]; then
+		log "Предупреждение: запущено несколько процессов vk-tunnel: ${vk_pids[*]}"
+		# Оставляем только первый процесс (основной)
+		for ((i=1; i<${#vk_pids[@]}; i++)); do
+			log "Убиваем дополнительный процесс: ${vk_pids[i]}"
+			kill -9 "${vk_pids[i]}" 2>/dev/null
+		done
+		vk_pid="${vk_pids[0]}"
+	else
+		vk_pid="${vk_pids[0]}"
 	fi
 	
 	log "vk-tunnel запущен (PID: $vk_pid)"
@@ -319,17 +356,13 @@ install() {
 	read -r SA_SECRET_ACCESS_KEY
 	echo
 	
+	# установка зависимостей
+	install_dependencies
+	
 	# проверяем установку
 	if ! check_commands; then
 		log "Ошибка: не все необходимые команды установлены"
-		# установка зависимостей
-		install_dependencies
-
-		# проверяем установку
-		if ! check_commands; then
-			log "Ошибка: после установки зависимостей все еще нет необходимых команд"
-			exit 1
-		fi
+		exit 1
 	fi
 	
 	# настройка awscli

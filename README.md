@@ -34,7 +34,7 @@ Vk-tunnel должен выдать два адреса: https:// и wss:// — 
 
 Клонируем этот репозиторий себе на сервер
 
-    git clone https://github.com/nebesniy/easy-vk-tunnel.git
+    git clone --single-branch --branch v.-1.0 https://github.com/nebesniy/easy-vk-tunnel.git
 
 Вписываем UUID, порт инбаунда и path в скрипт
 

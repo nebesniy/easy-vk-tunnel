@@ -36,7 +36,7 @@
 
 При первом запуске vk-tunnel выдаст auth-ссылку. Откройте её в браузере и авторизуйтесь с помощью аккаунта VK. После авторизации вернитесь в консоль и нажмите Enter. 
 
-![Первый запуск vk-tunnel](https://sun6-21.userapi.com/MxtY4KVdEAQXGclJ4rhmkq4EtB8V7GQwS-xHmw/KRmoiffXkhg.jpg)
+![Первый запуск vk-tunnel](https://i.ibb.co/67m3pdFv/Bildschirmfoto-2025-09-29-um-10-19-42.png) 
 
 Vk-tunnel должен выдать два адреса: https:// и wss:// — если это произошло, то вы успешно авторизовались. Ваши данные авторизации он запомнит. Убиваем vk-tunnel нажатием Ctrl+C.
 

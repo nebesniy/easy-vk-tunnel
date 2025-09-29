@@ -218,7 +218,7 @@ check_tunnel() {
 start_vk_tunnel() {
 	log "Запуск vk-tunnel на порту $INBOUNDPORT..."
 	
-	$PKILL_CMD -f "vk-tunnel --port=$INBOUNDPORT"
+	$PKILL_CMD -f "vk-tunnel"
 	sleep 2
 	
 	$VK_TUNNEL_CMD --port="$INBOUNDPORT" > /tmp/vk-tunnel.log 2>&1 &

@@ -171,10 +171,10 @@ get_current_domain() {
 	local domain
 	
 	# Извлекаем домен из логов
-	domain=$(grep -oE 'https://[a-zA-Z0-9-]+[-a-zA-Z0-9]*\.tunnel\.vk-apps\.com' /tmp/vk-tunnel.log 2>/dev/null | tail -n1 | sed 's|https://||')
+	domain=$(grep -oE 'https://[a-zA-Z0-9-]+[-a-zA-Z0-9]*\.tunnel\.vk-apps\.com' /tmp/vk-tunnel.log 2>/dev/null | tail -n 5 | sed 's|https://||')
 	
 	if [[ -z "$domain" ]]; then
-		domain=$(grep -oE 'wss://[a-zA-Z0-9-]+[-a-zA-Z0-9]*\.tunnel\.vk-apps\.com' /tmp/vk-tunnel.log 2>/dev/null | tail -n1 | sed 's|wss://||')
+		domain=$(grep -oE 'wss://[a-zA-Z0-9-]+[-a-zA-Z0-9]*\.tunnel\.vk-apps\.com' /tmp/vk-tunnel.log 2>/dev/null | tail -n 5 | sed 's|wss://||')
 	fi
 	
 	echo "$domain"

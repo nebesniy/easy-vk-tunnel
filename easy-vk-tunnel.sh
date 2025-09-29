@@ -10,7 +10,7 @@ CONFIG_FILE="$SCRIPT_DIR/settings.conf"
 LOG_FILE="/tmp/easy-vk-tunnel.log"
 
 VK_TUNNEL_CMD="/usr/local/bin/vk-tunnel" 
-AWS_CMD="/usr/bin/aws"
+AWS_CMD="/usr/local/bin/aws"
 CURL_CMD="/usr/bin/curl"
 PGREP_CMD="/usr/bin/pgrep"
 PKILL_CMD="/usr/bin/pkill"

@@ -230,7 +230,7 @@ install() {
 	read -r SA_ACCESS_KEY_ID
 	
 	echo "Введите ключ статического доступа сервисного аккаунта:"
-	read -r -s SA_SECRET_ACCESS_KEY
+	read -r SA_SECRET_ACCESS_KEY
 	echo
 	
 	# установка зависимостей

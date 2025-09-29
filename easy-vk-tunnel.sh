@@ -116,7 +116,7 @@ upload_to_yandex_cloud() {
 	if $AWS_CMD --endpoint-url=https://storage.yandexcloud.net s3 cp "/tmp/$SUBSCRIPTION_FILE" "s3://$BUCKET_NAME/" > /dev/null 2>&1; then
 		local file_url="https://storage.yandexcloud.net/$BUCKET_NAME/$SUBSCRIPTION_FILE"
 		log "Файл подписки успешно загружен: $file_url"
-		echo "Добавьте $file_url в свой vless-клиент, как подписку. Далее easy-vk-tunnel будет сам следить за работоспособностью туннеля, перезагружать его и автоматически менять домен в подписке."
+		echo "Добавьте $file_url в свой VLESS-клиент, как подписку. Далее надзорный скрипт watchdog будет сам следить за работоспособностью туннеля, перезагружать его и автоматически менять домен в подписке."
 	else
 		log "Ошибка загрузки файла в бакет"
 		return 1
@@ -274,8 +274,8 @@ install() {
 	
 	# фикс: отображение URL подписки после установки
 	if [[ -n "$file_url" ]]; then
-		echo "=============================================="
-		echo "URL подписки: $file_url"
+		echo "================URL подписки=================="
+		echo "$file_url"
 		echo "=============================================="
 	fi
 }
@@ -361,9 +361,9 @@ case "${1:-}" in
 		echo ""
 		echo "Опции:"
 		echo "  --install        Установка и настройка скрипта"
-		echo "  --watchdog       Запуск проверки watchdog (для cron)"
+		echo "  --watchdog       Запуск надзорного скрипта watchdog (для cron)"
 		echo "  --run            Запуск туннеля с текущей конфигурацией"
-		echo "  --force-upload   Принудительная повторная загрузка файла подписки в S3"
+		echo "  --force-upload   Принудительная повторная загрузка файла подписки в Yandex.Cloud"
 		echo ""
 		echo "Пример: $0 --install"
 		echo "Пример: $0 --force-upload"

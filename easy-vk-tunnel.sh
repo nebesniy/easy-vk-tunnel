@@ -162,56 +162,42 @@ upload_to_yandex_cloud() {
 
 # чекер работоспособности туннеля
 check_tunnel() {
-	local domain="$1"
-	local url="https://${domain}${WSPATH}"
-	local response
-	local exit_code
-	local success_count=0
-	local attempt
-	
-	for attempt in {1..5}; do
-		log "Проверка туннеля $domain (попытка $attempt/5)..."
-		
-		response=$($CURL_CMD -sk --max-time 5 "$url" 2>/dev/null)
-		exit_code=$?
-		
-		if [[ $exit_code -eq 0 ]]; then
-			if echo "$response" | grep -q "Bad Request"; then
-				log "Туннель корректно отвечает ($domain) - попытка $attempt/5"
-				((success_count++))
-				
-				# Если хотя бы одна успешная проверка - сразу возвращаем успех
-				if [[ $success_count -ge 1 ]]; then
-					# log "Туннель стабильно работает ($domain)."
-					return 0
-				fi
-			else
-				log "Проблема с туннелем ($domain). Неверный ответ - попытка $attempt/5. Ответ: $response"
-				
-				# Немедленный возврат ошибки при обнаружении "no tunnel connection"
-				if echo "$response" | grep -q "there is no tunnel connection associated with given host"; then
-					log "Туннель не ассоциирован с доменом. Немедленная перезагрузка."
-					return 1
-				fi
-			fi
-		else
-			log "Ошибка проверки туннеля (curl exit code: $exit_code) - попытка $attempt/5"
-		fi
-		
-		# Если это не последняя попытка - ждем перед следующей
-		if [[ $attempt -lt 5 ]]; then
-			sleep 2
-		fi
-	done
-	
-	# Если дошли до сюда, значит все попытки неудачные или недостаточно успешных
-	if [[ $success_count -eq 0 ]]; then
-		# log "Все 5 попыток проверки туннеля $domain завершились неудачно"
-		return 1
-	else
-		# log "Туннель $domain работает нестабильно. Успешных проверок: $success_count/5"
-		return 0
-	fi
+    local domain="$1"
+    local url="https://${domain}${WSPATH}"
+    local response
+    local exit_code
+    local attempt
+    
+    for attempt in {1..3}; do 
+        log "Проверка туннеля $domain (попытка $attempt/3)..."
+        
+        response=$($CURL_CMD -sk --connect-timeout 3 --max-time 4 "$url" 2>/dev/null)
+        exit_code=$?
+        
+        if [[ $exit_code -eq 0 ]]; then
+            if echo "$response" | grep -q "Bad Request"; then
+                log "Туннель корректно отвечает ($domain)"
+                return 0
+            else
+                log "Проблема с туннелем ($domain). Неверный ответ. Ответ: $response"
+                
+                if echo "$response" | grep -q "there is no tunnel connection associated with given host"; then
+                    log "Туннель не ассоциирован с доменом. Немедленная перезагрузка."
+                    return 1
+                fi
+            fi
+        else
+            log "Ошибка проверки туннеля (curl exit code: $exit_code) - попытка $attempt/3"
+        fi
+        
+        # Уменьшаем паузу между попытками
+        if [[ $attempt -lt 3 ]]; then
+            sleep 1
+        fi
+    done
+    
+    log "Все попытки проверки туннеля $domain завершились неудачно"
+    return 1
 }
 
 # запускаем туннель

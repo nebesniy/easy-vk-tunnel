@@ -356,13 +356,17 @@ install() {
 	read -r SA_SECRET_ACCESS_KEY
 	echo
 	
-	# установка зависимостей
-	install_dependencies
-	
 	# проверяем установку
 	if ! check_commands; then
 		log "Ошибка: не все необходимые команды установлены"
-		exit 1
+		# установка зависимостей
+		install_dependencies
+	
+		# проверяем установку
+		if ! check_commands; then
+			log "Ошибка: после установки зависимостей все еще нет необходимых команд"
+			exit 1
+		fi
 	fi
 	
 	# настройка awscli

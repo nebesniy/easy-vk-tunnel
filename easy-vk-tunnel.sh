@@ -131,7 +131,7 @@ EOF
 create_subscription_file() {
 	local domain="$1"
 	local encoded_wspath=$(urlencode "$WSPATH")
-	local vless_link="vless://${UUID}@${domain}:443/?type=ws&path=${encoded_wspath}&security=tls#${domain}"
+	local vless_link="vless://${UUID}@${domain}:443?type=ws&path=${encoded_wspath}&security=tls#${domain}"
 	
 	cat > "/tmp/$SUBSCRIPTION_FILE" << EOF
 #profile-update-interval: 1
@@ -150,7 +150,7 @@ upload_to_yandex_cloud() {
 	
 	log "Загрузка файла подписки в бакет $BUCKET_NAME..."
 	
-	if $AWS_CMD --endpoint-url=https://storage.yandexcloud.net s3 cp "/tmp/$SUBSCRIPTION_FILE" "s3://$BUCKET_NAME/" > /dev/null 2>&1; then
+	if $AWS_CMD --endpoint-url=https://storage.yandexcloud.net s3 cp "/tmp/$SUBSCRIPTION_FILE" "s3://$BUCKET_NAME/" --cache-control "no-store" > /dev/null 2>&1; then
 		local file_url="https://storage.yandexcloud.net/$BUCKET_NAME/$SUBSCRIPTION_FILE"
 		log "Файл подписки успешно загружен: $file_url"
 		echo "Добавьте $file_url в своё VLESS-приложение, как подписку. Далее надзорный скрипт watchdog будет сам следить за работоспособностью туннеля, перезагружать его и автоматически менять домен в подписке."

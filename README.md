@@ -1,3 +1,8 @@
+
+# Скрипт больше не работает из-за остановки работы сервиса vk-tunnel
+
+Подробности в Issue https://github.com/nebesniy/easy-vk-tunnel/issues/29, Issue https://github.com/nebesniy/easy-vk-tunnel/issues/30, а также в репозитории [@VKCOM/vk-tunnel-client](https://github.com/VKCOM/vk-tunnel-client).
+
 # Easy VK Tunnel 2.0
 
 Вторая версия bash-скрипта для лёгкого создания VLESS-конфигурации с использованием [vk-tunnel](https://github.com/VKCOM/vk-tunnel-client) в качестве туннеля между клиентом и сервером. Автоматически создаёт файл подписки и отправляет его в бакет S3-совместимого объектного хранилища Yandex.Cloud, выдаёт внешнюю ссылку на подписку. С помощью cron каждую минуту следит за работоспособностью туннеля и перезагружает его, если туннель упал. В случае смены домена туннеля, меняет домен в подписке.
